@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Canadian Healthcare Viz</title>
+	<script type="text/javascript" src="js/d3.js"></script>
+	<link rel="stylesheet" href="css/style.css">
+	<link href="https://fonts.googleapis.com/css?family=Abel" rel="stylesheet">
+</head>
+<body>	
+	<div id="map"></div>
+	<section id="ranking">
+		<div id="info">
+			<h1>Total Treatment Costs by Province</h1>
+			<h2><strong id="province">All provinces</strong></h2>
+			<p><span id="cost">Cost:</span></p>
+			<h2>Total treatment costs (Since 2012)</h2>
+		</div>
+
+		<div id="treatment">
+			<div id="treatbars"></div>
+		</div>
+	</section>
+		
+	</div>
+	<script>
+		var w = 1000, h = 800;
+		var colorScale = d3.scale.linear()
+			.range(['#fff', '#d73027']);
+
+		var svg = d3.select("#map").append("svg")
+			.attr("width", w)
+			.attr("height", h);
+
+		var path = d3.geo.path()
+			.projection(d3.geo.azimuthalEqualArea()
+				.rotate([100, -45])
+				.center([5, 20])
+				.scale(1000)
+				.translate([w/2, h/2]));
+
+		d3.csv("pCA.csv", function(d) {
+			return {
+				province: d.Jurisdiction,
+				cost: +d[" Estimated average cost (all age groups) "],
+				treatment: d.CMG
+				};
+			},
+			function(data) {
+				var fulldata = d3.nest()
+					.key(function(d) { return d.province;})
+					.rollup(function(v) { return {
+						cost: d3.sum(v, function(d){return d.cost;}),
+						treatment: v.treatment}; 
+						})
+					.entries(data);
+
+				//Case mix groups by province + cost
+				var testdata = d3.nest()
+					.key(function(d) {return d.province;})
+					.key(function(d) {return d.treatment})
+					.rollup(function(v) {return d3.sum(v, function(d){return d.cost;})})
+					.entries(data);
+				console.log(testdata);
+
+				var countryTreatment = d3.nest()
+					.key(function(d) {return d.treatment})
+					.rollup(function(v) { return d3.sum(v, function(d) {return d.cost;})})
+					.entries(data);
+
+				//sort descending
+				countryTreatment.sort(function(a,b) {
+					return d3.descending(a.values, b.values);
+				});
+				console.log(countryTreatment.length*10);
+
+				//total treatment costs for whole country
+				d3.select("#cost")
+					.text("Cost: $" + d3.format(",.2f")(total));
+
+				console.log(fulldata);
+
+				colorScale.domain([d3.min(fulldata, function(d) {return d.values.cost; }),
+				d3.max(fulldata, function(d) { return d.values.cost; })]);
+
+
+				//treatment bars
+				//TODO: color code treatment bars by case mix group
+
+				var th = countryTreatment.length * 40;
+
+				var treatbars = d3.select("#treatbars").append("svg")
+					.attr("width", "100%")
+					.attr("height", th);
+
+				var total = d3.sum(fulldata, function(d){return d.values.cost;});
+
+				var bounds = treatbars.node().getBoundingClientRect();
+
+				console.log(bounds.width);
+				var tx = d3.scale.linear()
+					.range([0, bounds.width])
+					.domain([0, d3.max(countryTreatment, function(d) {
+						return d.values;
+					})]);
+
+				var ty = d3.scale.ordinal()
+					.rangeRoundBands([th, 0], .1)
+					.domain(countryTreatment.map(function(d) {
+						return d.key;
+					}));
+
+				console.log(countryTreatment[1].key);
+
+				//shortens labels if text is longer than bar
+				function clipText (d, t) {
+					 if (d.width < 40) {
+					    return "";
+					  }
+
+					 var name = t.substring(0, d.width / 8);
+					 console.log(d.width);
+					 console.log(name);
+					  if (name.length < t.length) {
+					    name = name.substring (0, name.length - Math.min(2, name.length)) + "...";
+					  }
+					  return name;
+				}
+
+				//draw bars and labels
+				treatbars.selectAll("bars")
+					.data(countryTreatment)
+					.enter().append("g")
+					treatbars.selectAll("g")
+						.append("rect")
+						.attr("class", "bars")
+						.attr("y", function(d) {
+							return th - ty(d.key) - 280;
+						})
+						.attr("height", ty.rangeBand())
+						.attr("x", 0)
+						.attr("width", function(d) {
+							return tx(d.values);
+						})
+					treatbars.selectAll("g")
+						.append("text")
+						.attr("class", "label")
+						.attr("y", function(d) {
+							return th - ty(d.key) - 280 + 20;
+						})
+						.attr("x", 15)
+						.text(function(d) {
+							return clipText(d3.select(this.parentNode).select("rect").node().getBBox(), d.key);
+						});
+
+
+
+				//map
+				d3.json("canada.json", function(json) {
+
+					//bind data to geojson (cost to province)
+					for(var i=0; i<fulldata.length; i++) {
+						var dataArea = fulldata[i].key;
+						var dataCost = parseFloat(fulldata[i].values.cost);
+
+						for(var j=0; j<json.features.length; j++) {
+							var jsonArea = json.features[j].properties.NAME;
+							if(dataArea == jsonArea) {
+								json.features[j].properties.value = dataCost;
+								break;
+							}
+						}
+					}
+
+					console.log(json.features[1].properties);
+
+					//draw provinces, fill color depends on value
+					svg.selectAll("path")
+						.data(json.features)
+						.enter().append("path")
+						.attr("d", path)
+						.on("mouseover", function(d) { //mouseover shows province stats
+
+							d3.select("#info") //move tooltip
+								.style("left", 100 + "px")
+								.style("top", h + "px")
+								.select("#cost")
+								.text("Cost: $" + d3.format(",.2f")(d.properties.value));
+
+							d3.select("#province") //tooltip text
+								.text("Province: " + d.properties.NAME);
+						})
+						.on("mouseout", function(d) {
+							d3.select("#province")
+								.text("All provinces");
+
+							d3.select("#cost")
+							.text("Cost: $" + d3.format(",.2f")(total));
+						})
+						.style("fill", function(d) { 
+							var value = d.properties.value;
+							if(value) {
+								return colorScale(value);
+							} else {
+								return "#ccc";
+							}});
+
+				});
+		});
+
+			
+
+
+	</script>
+
+</body>
+</html>
