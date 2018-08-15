@@ -9,6 +9,7 @@
 </head>
 <body>	
 	<div id="map"></div>
+	<div id="dateslider"></div>
 	<section id="ranking">
 		<div id="info">
 			<h1>Total Treatment Costs by Province</h1>
@@ -127,6 +128,12 @@
 					  return name;
 				}
 
+				//define tooltips
+				var costtip = d3.select("body").append("div")
+					.attr("class", "tooltip")
+					.style("opacity", 0);
+
+
 				//draw bars and labels
 				treatbars.selectAll("bars")
 					.data(countryTreatment)
@@ -142,6 +149,19 @@
 						.attr("width", function(d) {
 							return tx(d.values);
 						})
+						.on("mouseover", function(d) {
+							costtip.transition()
+								.duration(200)
+								.style("opacity", .9);
+							costtip.html("<strong>Total cost: </strong> $" + d3.format(",.2f")(d.values))
+								.style("left",  "60vw")
+								.style("top", this.getBoundingClientRect().y + "px");
+						})
+						 .on("mouseout", function(d) {		
+				            costtip.transition()		
+				                .duration(500)		
+				                .style("opacity", 0);	
+				        })
 					treatbars.selectAll("g")
 						.append("text")
 						.attr("class", "label")

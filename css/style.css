@@ -58,6 +58,12 @@ strong {
 	float: left;
 }
 
+#dateslider {
+	width: 70%;
+	position: absolute;
+	bottom: 25%;
+}
+
 #ranking {
 	width: 30%;
 	float: right;
@@ -82,20 +88,20 @@ path:hover {
 	stroke-width: 1px;
 }
 
-#tooltip {
-			position: absolute;
-			height: auto;
-			padding: 10px;
-			background-color: #2d2d2d;
-			color: white;
-			-webkit-border-radius: 10px;
-			-moz-border-radius: 10px;
-			border-radius: 10px;
-			-webkit-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
-			-moz-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
-			box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
-			pointer-events: none;
-		}
+/*#tooltip {
+	position: absolute;
+	height: auto;
+	padding: 10px;
+	background-color: #2d2d2d;
+	color: white;
+	-webkit-border-radius: 10px;
+	-moz-border-radius: 10px;
+	border-radius: 10px;
+	-webkit-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+	-moz-box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+	box-shadow: 4px 4px 10px rgba(0, 0, 0, 0.4);
+	pointer-events: none;
+}
 #tooltip.hidden {
 	display: none;
 }
@@ -103,4 +109,18 @@ path:hover {
 	margin: 0;
 	font-size: 16px;
 	line-height: 20px;
+}*/
+
+div.tooltip {	
+    position: absolute;			
+    text-align: center;			
+    width: auto;				
+    height: 20px;					
+    padding: 10px;				
+    font: 12px sans-serif;	
+   	color: white;
+    background: #2e2e2e;	
+    border: 0px;		
+    border-radius: 8px;			
+    pointer-events: none;			
 }
