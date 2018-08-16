@@ -19,7 +19,7 @@
 		</div>
 
 		<div id="treatment">
-			<div id="treatbars"></div>
+		<div id="treatbars"></div>
 		</div>
 	</section>
 		
@@ -40,14 +40,18 @@
 				.scale(1000)
 				.translate([w/2, h/2]));
 
+
+		//load data
 		d3.csv("pCA.csv", function(d) {
 			return {
 				province: d.Jurisdiction,
 				cost: +d[" Estimated average cost (all age groups) "],
-				treatment: d.CMG
+				treatment: d.CMG,
+				year: +d["Fiscal year"]
 				};
 			},
 			function(data) {
+				//totals
 				var fulldata = d3.nest()
 					.key(function(d) { return d.province;})
 					.rollup(function(v) { return {
@@ -56,14 +60,99 @@
 						})
 					.entries(data);
 
+				//slider
+				var yearFormat = d3.time.format("%Y"),
+					mt = 20, mb = 20, ml = 30, mr = 30,
+					yrw = 900 - ml - mr,
+					yrh = 300 - mb - mt;
+				var maxYear = d3.max(data, function(d) {
+					return d.year;
+				});
+
+				function brushed() {
+					var value = brush.extent()[0];
+					if(d3.event.sourceEvent) {
+						value = timeScale.invert(d3.mouse(this)[0]);
+						brush.extent([value, value]);
+					}
+					handle.attr("transform", "translate(" + timeScale(value) + ",0)");
+					handle.select("text").text(value);
+				}
+
+				var timeScale = d3.time.scale()
+					.domain([d3.min(data, function(d) {
+						return d.year;
+					}), maxYear])
+					.range([0, yrw])
+					.clamp(true);
+
+					//initial value
+				var startValue = timeScale('2016');
+				startingValue = 2016;
+
+				var brush = d3.svg.brush()
+					.x(timeScale)
+					.extent([startingValue, startingValue])
+					.on("brush", brushed);
+
+				var slidersvg = d3.select("#dateslider").append("svg")
+					.attr("width", yrw + ml + mr)
+					.attr("height", yrh + mt + mb)
+					.append("g")
+					.attr("transform", "translate(" + ml +"," + mt +" )");
+
+				console.log(timeScale.domain()[0]);
+				console.log(timeScale.domain()[1]);
+
+				slidersvg.append("g")
+					.attr("class", "x-axis")
+					.attr("transform", "translate(0," + yrh/2 +")")
+					.call(d3.svg.axis()
+						.scale(timeScale)
+						.orient("bottom")
+						.tickSize(0)
+						.tickPadding(5)
+						.tickValues([timeScale.domain()]))
+						.select(".domain")
+						.select(function() {
+							return this.parentNode.appendChild(this.cloneNode(true));
+						})
+						.attr("class", "halo");
+
+				var slider = slidersvg.append("g")
+					.attr("class", "slider")
+					.call(brush);
+
+				slider.selectAll(".extent,.resize")
+				  .remove();
+
+				slider.select(".background")
+				  .attr("height", yrh);
+
+				var handle = slider.append("g")
+				  .attr("class", "handle")
+
+				handle.append("path")
+				  .attr("transform", "translate(0," + yrh / 2 + ")")
+				  .attr("d", "M 0 -20 V 20")
+
+				handle.append('text')
+				  .text(startValue)
+				  .attr("transform", "translate(" + (-18) + " ," + (yrh / 2 - 25) + ")");
+
+				slider
+				  .call(brush.event)
+
+
+
 				//Case mix groups by province + cost
 				var testdata = d3.nest()
 					.key(function(d) {return d.province;})
 					.key(function(d) {return d.treatment})
 					.rollup(function(v) {return d3.sum(v, function(d){return d.cost;})})
 					.entries(data);
-				console.log(testdata);
 
+				//total treatment cost by province
 				var countryTreatment = d3.nest()
 					.key(function(d) {return d.treatment})
 					.rollup(function(v) { return d3.sum(v, function(d) {return d.cost;})})
@@ -73,13 +162,10 @@
 				countryTreatment.sort(function(a,b) {
 					return d3.descending(a.values, b.values);
 				});
-				console.log(countryTreatment.length*10);
 
 				//total treatment costs for whole country
 				d3.select("#cost")
 					.text("Cost: $" + d3.format(",.2f")(total));
-
-				console.log(fulldata);
 
 				colorScale.domain([d3.min(fulldata, function(d) {return d.values.cost; }),
 				d3.max(fulldata, function(d) { return d.values.cost; })]);
@@ -98,7 +184,6 @@
 
 				var bounds = treatbars.node().getBoundingClientRect();
 
-				console.log(bounds.width);
 				var tx = d3.scale.linear()
 					.range([0, bounds.width])
 					.domain([0, d3.max(countryTreatment, function(d) {
@@ -111,8 +196,6 @@
 						return d.key;
 					}));
 
-				console.log(countryTreatment[1].key);
-
 				//shortens labels if text is longer than bar
 				function clipText (d, t) {
 					 if (d.width < 40) {
@@ -120,8 +203,6 @@
 					  }
 
 					 var name = t.substring(0, d.width / 8);
-					 console.log(d.width);
-					 console.log(name);
 					  if (name.length < t.length) {
 					    name = name.substring (0, name.length - Math.min(2, name.length)) + "...";
 					  }
@@ -191,8 +272,6 @@
 							}
 						}
 					}
-
-					console.log(json.features[1].properties);
 
 					//draw provinces, fill color depends on value
 					svg.selectAll("path")
