@@ -42,8 +42,12 @@ strong {
 	transition: fill 0.5s ease;
 }
 
-.bars:hover {
+g:hover > .bars {
 	fill: #2f2f2f;
+}
+
+g:hover > .label {
+	fill: white;
 }
 
 
@@ -113,9 +117,9 @@ path:hover {
 
 div.tooltip {	
     position: absolute;			
-    text-align: center;			
+    text-align: left;			
     width: auto;				
-    height: 20px;					
+    height: 28px;					
     padding: 10px;				
     font: 12px sans-serif;	
    	color: white;

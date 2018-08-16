@@ -153,8 +153,8 @@
 							costtip.transition()
 								.duration(200)
 								.style("opacity", .9);
-							costtip.html("<strong>Total cost: </strong> $" + d3.format(",.2f")(d.values))
-								.style("left",  "60vw")
+							costtip.html("<strong>Treatment: </strong>" + d.key +"<br/><strong>Total cost: </strong> $" + d3.format(",.2f")(d.values))
+								.style("right",  "30vw")
 								.style("top", this.getBoundingClientRect().y + "px");
 						})
 						 .on("mouseout", function(d) {		
